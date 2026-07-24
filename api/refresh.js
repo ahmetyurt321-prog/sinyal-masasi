@@ -1,4 +1,4 @@
-const { WATCHLIST, sma, rsi, macd, scoreFromIndicators } = require('./_lib');
+const { WATCHLIST, sma, rsi, macd, scoreFromIndicators } = require('../lib/lib');
 
 const TWELVE_DATA_KEY = process.env.TWELVE_DATA_KEY;
 const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
