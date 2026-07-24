@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sinyal Masası — ABD Hisseleri</title>
+<style>
+  :root{
+    --ink:#0B0E14; --panel:#12161F; --panel-2:#171C27; --line:#232939;
+    --text:#E8E6DF; --text-dim:#8B93A7;
+    --buy:#3FA796; --sell:#C1483D; --hold:#C9A227;
+    --buy-bg:rgba(63,167,150,0.12); --sell-bg:rgba(193,72,61,0.12); --hold-bg:rgba(201,162,39,0.12);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ink);color:var(--text);font-family:-apple-system,"Segoe UI",Inter,sans-serif;}
+  .wrap{max-width:1100px;margin:0 auto;border:1px solid var(--line);min-height:100vh;}
+  .header{padding:24px;border-bottom:1px solid var(--line);}
+  .eyebrow{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--hold);margin-bottom:6px;}
+  h1{font-size:24px;margin:0 0 4px;font-weight:650;}
+  .sub{color:var(--text-dim);font-size:13px;margin:0;}
+  .meta{font-family:ui-monospace,monospace;font-size:11px;color:var(--text-dim);margin-top:8px;}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;padding:16px 24px;border-bottom:1px solid var(--line);background:var(--panel);align-items:center;}
+  input[type=text]{background:var(--ink);border:1px solid var(--line);color:var(--text);padding:8px 12px;border-radius:6px;font-size:13px;outline:none;}
+  select{background:var(--ink);border:1px solid var(--line);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px;outline:none;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{position:sticky;top:0;background:var(--panel);text-align:left;padding:10px 14px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-dim);border-bottom:1px solid var(--line);white-space:nowrap;}
+  tbody tr{border-bottom:1px solid var(--line);cursor:pointer;}
+  tbody tr:hover{background:var(--panel-2);}
+  td{padding:10px 14px;font-family:ui-monospace,"SF Mono",monospace;white-space:nowrap;}
+  td.name-cell{font-family:inherit;}
+  .sym{font-weight:700;}
+  .star{cursor:pointer;color:var(--text-dim);margin-right:6px;}
+  .star.active{color:var(--hold);}
+  .company{color:var(--text-dim);font-size:11px;display:block;font-family:-apple-system,sans-serif;}
+  .chg-up{color:var(--buy);} .chg-down{color:var(--sell);}
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;font-family:ui-monospace,monospace;}
+  .badge-AL{background:var(--buy-bg);color:var(--buy);}
+  .badge-SAT{background:var(--sell-bg);color:var(--sell);}
+  .badge-TUT{background:var(--hold-bg);color:var(--hold);}
+  .badge-VERI_YOK{background:rgba(139,147,167,0.1);color:var(--text-dim);}
+  .score-bar-bg{width:60px;height:5px;background:var(--panel-2);border-radius:3px;display:inline-block;vertical-align:middle;overflow:hidden;}
+  .score-bar-fill{height:100%;}
+  .detail{padding:14px 24px 18px;background:var(--panel-2);border-bottom:1px solid var(--line);font-size:13px;line-height:1.6;}
+  .detail .label{color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:500px;}
+  .footer{padding:14px 24px;font-size:11px;color:var(--text-dim);border-top:1px solid var(--line);background:var(--panel);line-height:1.6;}
+  .empty{padding:40px 24px;text-align:center;color:var(--text-dim);font-size:13px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="eyebrow">Analiz Panosu &middot; ABD Hisseleri</div>
+    <h1>Sinyal Masası</h1>
+    <p class="sub">RSI, SMA ve MACD göstergelerinden hesaplanan kural tabanlı skor. Emir vermez, sadece analiz gösterir — yatırım tavsiyesi değildir.</p>
+    <div class="meta" id="lastUpdate">Yükleniyor...</div>
+  </div>
+  <div class="controls">
+    <input type="text" id="search" placeholder="Sembol veya şirket ara...">
+    <select id="sortSel">
+      <option value="score-desc">Skora göre (yüksek→düşük)</option>
+      <option value="score-asc">Skora göre (düşük→yüksek)</option>
+      <option value="alpha">Alfabetik</option>
+      <option value="sector">Sektöre göre</option>
+    </select>
+    <select id="signalFilter">
+      <option value="ALL">Tüm sinyaller</option>
+      <option value="AL">Sadece AL</option>
+      <option value="TUT">Sadece TUT</option>
+      <option value="SAT">Sadece SAT</option>
+    </select>
+    <select id="favFilter">
+      <option value="ALL">Tümü</option>
+      <option value="FAV">Sadece favoriler ★</option>
+    </select>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Sembol</th><th>Fiyat</th><th>Değişim</th><th>Sinyal</th><th>Skor</th><th>Güncelleme</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div class="empty" id="emptyMsg" style="display:none;"></div>
+  <div class="footer">
+    Fiyat ve gösterge verileri Twelve Data'dan alınır, periyodik olarak (yaklaşık 15-30 dakikada bir) güncellenir; gecikmeli olabilir. Bu bir yatırım danışmanlığı hizmeti değildir, gerçek emir göndermez. Karar vermeden önce kendi araştırmanızı yapın.
+  </div>
+</div>
+
+<script>
+let watchlist = [];
+let results = {};
+let favorites = JSON.parse(localStorage.getItem('sinyal-favorites') || '[]');
+let openRow = null;
+
+const tbody = document.getElementById('tbody');
+const emptyMsg = document.getElementById('emptyMsg');
+const searchEl = document.getElementById('search');
+const sortSel = document.getElementById('sortSel');
+const signalFilter = document.getElementById('signalFilter');
+const favFilter = document.getElementById('favFilter');
+const lastUpdateEl = document.getElementById('lastUpdate');
+
+function scoreColor(score){
+  if(score>=66) return 'var(--buy)';
+  if(score>=40) return 'var(--hold)';
+  return 'var(--sell)';
+}
+
+function toggleFav(sym, e){
+  e.stopPropagation();
+  if(favorites.includes(sym)) favorites = favorites.filter(s=>s!==sym);
+  else favorites.push(sym);
+  localStorage.setItem('sinyal-favorites', JSON.stringify(favorites));
+  render();
+}
+
+function matchesFilters(w){
+  const q = searchEl.value.trim().toUpperCase();
+  if(q && !(w.symbol.toUpperCase().includes(q) || w.name.toUpperCase().includes(q))) return false;
+  const sf = signalFilter.value;
+  if(sf!=='ALL'){
+    const r = results[w.symbol];
+    if(!r || r.signal !== sf) return false;
+  }
+  if(favFilter.value==='FAV' && !favorites.includes(w.symbol)) return false;
+  return true;
+}
+
+function sortedWatchlist(){
+  let list = watchlist.filter(matchesFilters);
+  const mode = sortSel.value;
+  list = list.slice();
+  if(mode==='alpha') list.sort((a,b)=>a.symbol.localeCompare(b.symbol));
+  else if(mode==='sector') list.sort((a,b)=>a.sector.localeCompare(b.sector) || a.symbol.localeCompare(b.symbol));
+  else list.sort((a,b)=>{
+    const ra=results[a.symbol], rb=results[b.symbol];
+    const sa = ra && ra.score!=null ? ra.score : -1;
+    const sb = rb && rb.score!=null ? rb.score : -1;
+    return mode==='score-asc' ? sa-sb : sb-sa;
+  });
+  return list;
+}
+
+function render(){
+  const list = sortedWatchlist();
+  if(list.length===0){
+    tbody.innerHTML=''; emptyMsg.style.display='block';
+    emptyMsg.textContent='Filtreyle eşleşen sonuç yok.';
+    return;
+  }
+  emptyMsg.style.display='none';
+
+  tbody.innerHTML = list.map(w=>{
+    const r = results[w.symbol];
+    const signal = r ? r.signal : 'VERI_YOK';
+    const price = r && r.price!=null ? '$'+r.price : '—';
+    const chg = r && r.changePct!=null ? r.changePct : null;
+    const chgHtml = chg==null ? '—' : `<span class="${chg>=0?'chg-up':'chg-down'}">${chg>=0?'+':''}${chg.toFixed(2)}%</span>`;
+    const score = r && r.score!=null ? r.score : null;
+    const scoreHtml = score==null ? '—' : `<span class="score-bar-bg"><span class="score-bar-fill" style="width:${score}%;background:${scoreColor(score)}"></span></span> ${score}`;
+    const updated = r && r.updatedAt ? new Date(r.updatedAt).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : '';
+    const isFav = favorites.includes(w.symbol);
+    const isOpen = openRow===w.symbol;
+    let row = `<tr data-sym="${w.symbol}">
+        <td class="name-cell"><span class="star ${isFav?'active':''}" data-fav="${w.symbol}">★</span><span class="sym">${w.symbol}</span><span class="company">${w.name} · ${w.sector}</span></td>
+        <td>${price}</td>
+        <td>${chgHtml}</td>
+        <td><span class="badge badge-${signal}">${signal.replace('_',' ')}</span></td>
+        <td>${scoreHtml}</td>
+        <td style="color:var(--text-dim);font-size:11px;">${updated}</td>
+      </tr>`;
+    if(isOpen && r){
+      row += `<tr><td colspan="6" style="padding:0;border:none;">
+        <div class="detail">
+          <div class="label">Gösterge detayı</div>
+          <div class="grid3">
+            <div><div class="label">RSI(14)</div>${r.rsi ?? '—'}</div>
+            <div><div class="label">SMA20</div>${r.sma20 ?? '—'}</div>
+            <div><div class="label">SMA50</div>${r.sma50 ?? '—'}</div>
+          </div>
+        </div>
+      </td></tr>`;
+    }
+    return row;
+  }).join('');
+
+  tbody.querySelectorAll('tr[data-sym]').forEach(tr=>{
+    tr.addEventListener('click',(e)=>{
+      if(e.target.closest('[data-fav]')) return;
+      const sym = tr.getAttribute('data-sym');
+      openRow = openRow===sym ? null : sym;
+      render();
+    });
+  });
+  tbody.querySelectorAll('[data-fav]').forEach(el=>{
+    el.addEventListener('click',(e)=>toggleFav(el.getAttribute('data-fav'), e));
+  });
+}
+
+async function load(){
+  try{
+    const res = await fetch('/api/results');
+    const data = await res.json();
+    watchlist = data.watchlist || [];
+    results = data.results || {};
+    if(data.lastRefresh && data.lastRefresh.at){
+      const d = new Date(data.lastRefresh.at);
+      lastUpdateEl.textContent = 'Son güncelleme: ' + d.toLocaleString('tr-TR');
+      if(data.lastRefresh.errors && data.lastRefresh.errors.length){
+        lastUpdateEl.textContent += ` (${data.lastRefresh.errors.length} sembolde veri alınamadı)`;
+      }
+    } else {
+      lastUpdateEl.textContent = 'Henüz hiç yenileme yapılmadı.';
+    }
+    render();
+  }catch(e){
+    lastUpdateEl.textContent = 'Veri alınamadı, sayfayı yenileyin.';
+  }
+}
+
+searchEl.addEventListener('input', render);
+sortSel.addEventListener('change', render);
+signalFilter.addEventListener('change', render);
+favFilter.addEventListener('change', render);
+
+load();
+setInterval(load, 60000); // her dakika önbellekten tazele
+</script>
+</body>
+</html>
