@@ -1,4 +1,4 @@
-const { WATCHLIST } = require('./_lib');
+const { WATCHLIST } = require('../lib/lib');
 
 const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
 const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
